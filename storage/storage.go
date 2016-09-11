@@ -4,6 +4,7 @@ import (
     "github.com/boltdb/bolt"
     "log"
     "encoding/json"
+    "time"
     "fmt"
     "bytes"
     "errors"
@@ -13,6 +14,15 @@ import (
 
 const ImageDataKey = "imageData"
 
+const JobPrefix = "job_"
+const TaskPrefix = "task_"
+const ImgPrefix = "img_"
+const GCSPrefix = "gcs_"
+const ServerPrefix = "server_"
+const FinishedPrefix = "done_"
+
+const Done = "true"
+const NotDone = "false"
 
 type Store struct {
     db *bolt.DB
@@ -26,28 +36,82 @@ func NewStorage(db *bolt.DB) *Store {
 }
 
 
+//The new user ID is set on u once the data is persisted.
+func (self *Store) NewTaskStorage(payloads  []*Payload) error {
+    return self.db.Update(func(tx *bolt.Tx) error {
+        job_name := fmt.Sprintf("%v%v",
+            JobPrefix, time.Now().Format(time.RFC3339))
 
-func (store *Store) MarkDone(b *bolt.Bucket) error {
+        job_b, err := tx.CreateBucketIfNotExists([]byte(job_name))
+        if err != nil {
+            return err
+        }
+
+        for _, task := range payloads {
+            task_id, err := next_id(job_b)
+            if self.IsErr(err) {
+                return err
+            }
+            task_id = self.createTaskID(task_id)
+
+            //0. create task bucket
+            task_b, err := create_bucket(job_b, task_id)
+            if self.IsErr(err) {
+                return err
+            }
+
+            //2. Save Task info
+            err = self.SaveTaskInfo(task_b, task)
+            if self.IsErr(err) {
+                return err
+            }
+
+            //3. Save Image Info
+            err = self.SaveImageInfo(task_b, task)
+            if self.IsErr(err) {
+                return err
+            }
+        }
+
+        return self.MarkNotDone(job_b)
+    })
+}
+
+func (self *Store) MarkDone(b *bolt.Bucket) error {
     return b.Put([]byte("done"), []byte(Done))
 }
 
-func (store *Store) MarkNotDone(b *bolt.Bucket) error {
+func (self *Store) MarkNotDone(b *bolt.Bucket) error {
     return b.Put([]byte("done"), []byte(NotDone))
 }
 
-func (store *Store) IsDone(b *bolt.Bucket) bool {
+func (self *Store) IsDone(b *bolt.Bucket) bool {
     state := b.Get([]byte("done"))
     return string(state) == Done
 }
 
+func (self *Store) B(s string) []byte {
+    return []byte(s)
+}
 
+func (self *Store) createTaskID(id interface{}) string {
+    return fmt.Sprintf("%v%v", TaskPrefix, id)
+}
+
+func (self *Store) Put(b *bolt.Bucket, key string, value string) error {
+    return b.Put(self.B(key), self.B(value))
+}
+
+func (self *Store) IsErr(err error) bool {
+    return err != nil
+}
 
 //saves tasks info (includes creating imageData bucket on task)
-func (store *Store) SaveTaskInfo(b *bolt.Bucket, task *Payload) error {
+func (self *Store) SaveTaskInfo(b *bolt.Bucket, task *Payload) error {
     var err error = nil
     // create imageData bucket on bucket
-    _, err = create_sub_bucket(b, ImageDataKey)
-    if store.IsErr(err) {
+    _, err = create_bucket(b, ImageDataKey)
+    if self.IsErr(err) {
         return err
     }
 
@@ -60,37 +124,37 @@ func (store *Store) SaveTaskInfo(b *bolt.Bucket, task *Payload) error {
 
     for k, v := range data {
         val := fmt.Sprintf("%v", v)
-        if err = store.Put(b, k, val); store.IsErr(err) {
+        if err = self.Put(b, k, val); self.IsErr(err) {
             return err
         }
     }
 
-    return store.MarkNotDone(b)
+    return self.MarkNotDone(b)
 }
 
 //saves images in a given task payload
-func (store *Store) SaveImageInfo(b *bolt.Bucket, task *Payload) error {
+func (self *Store) SaveImageInfo(b *bolt.Bucket, task *Payload) error {
     var err error = nil
     b, err = b.CreateBucketIfNotExists([]byte(ImageDataKey))
-    if store.IsErr(err) {
+    if self.IsErr(err) {
         return err
     }
 
     imgdata := task.ImageData
     for _, img := range imgdata {
         k, err := next_id(b)
-        if store.IsErr(err) {
+        if self.IsErr(err) {
             return err
         }
         //img key
         k = MakeImgKey(ImgPrefix, k)
 
         v, err := json.Marshal(img)
-        if store.IsErr(err) {
+        if self.IsErr(err) {
             return err
         }
 
-        if err = store.Put(b, k, string(v)); store.IsErr(err) {
+        if err = self.Put(b, k, string(v)); self.IsErr(err) {
             return err
         }
     }
@@ -99,9 +163,9 @@ func (store *Store) SaveImageInfo(b *bolt.Bucket, task *Payload) error {
 }
 
 //returns all job buckets
-func (store *Store) AllJobs() []string {
+func (self *Store) AllJobs() []string {
     keys := make([]string, 0)
-    err := store.db.View(func(tx *bolt.Tx) error {
+    err := self.db.View(func(tx *bolt.Tx) error {
         c := tx.Cursor()
         prefix := []byte(JobPrefix)
         for k, v := c.Last(); k != nil; k, v = c.Prev() {
@@ -120,15 +184,15 @@ func (store *Store) AllJobs() []string {
 }
 
 //returns latest bucket not done
-func (store *Store) LatestJob() string {
+func (self *Store) LatestJob() string {
     var key string
-    err := store.db.View(func(tx *bolt.Tx) error {
+    err := self.db.View(func(tx *bolt.Tx) error {
         c := tx.Cursor()
         prefix := []byte(JobPrefix)
         for k, v := c.Last(); k != nil; k, v = c.Prev() {
             if v == nil && bytes.HasPrefix(k, prefix) {
                 b := tx.Bucket(k)
-                if b != nil && !store.IsDone(b) {
+                if b != nil && !self.IsDone(b) {
                     key = string(k)
                     break
                 }
@@ -143,9 +207,9 @@ func (store *Store) LatestJob() string {
 }
 
 //returns all job buckets
-func (store *Store) DeleteBucket(bucket string) bool {
+func (self *Store) DeleteBucket(bucket string) bool {
     key := []byte(bucket)
-    err := store.db.Update(func(tx *bolt.Tx) error {
+    err := self.db.Update(func(tx *bolt.Tx) error {
         if tx.Bucket(key) != nil {
             return tx.DeleteBucket(key)
         }
@@ -158,12 +222,12 @@ func (store *Store) DeleteBucket(bucket string) bool {
 }
 
 //concels job by marking it as done
-func (store *Store) CancelJob(bucket string) bool {
+func (self *Store) CancelJob(bucket string) bool {
     key := []byte(bucket)
-    err := store.db.Update(func(tx *bolt.Tx) error {
+    err := self.db.Update(func(tx *bolt.Tx) error {
         b := tx.Bucket(key)
         if b != nil {
-            return store.MarkDone(b)
+            return self.MarkDone(b)
         }
         return nil
     })
@@ -174,13 +238,13 @@ func (store *Store) CancelJob(bucket string) bool {
 }
 
 //returns all job buckets
-func (store *Store) GetGCSPayload(job string) []*UpObj {
+func (self *Store) GetGCSPayload(job string) []*UpObj {
     var path = job + "|"
 
     var gcs_payload = make([]*UpObj, 0)
     job_key := []byte(job)
 
-    err := store.db.View(func(tx *bolt.Tx) error {
+    err := self.db.View(func(tx *bolt.Tx) error {
 
         jb := tx.Bucket(job_key)
         if jb == nil {
@@ -188,15 +252,15 @@ func (store *Store) GetGCSPayload(job string) []*UpObj {
             return nil
         }
 
-        tasks := store.GetAllTasksNotDone(jb)
+        tasks := self.GetAllTasksNotDone(jb)
 
         for _, tk := range tasks {
             tk_path := path + string(tk) + "|"
             tb := jb.Bucket(tk)
             imb := tb.Bucket([]byte(ImageDataKey))
 
-            tsk_imgs, err := store.GetAllImgData(imb)
-            if store.IsErr(err) {
+            tsk_imgs, err := self.GetAllImgData(imb)
+            if self.IsErr(err) {
                 return err
             }
             for k, im := range tsk_imgs {
@@ -222,13 +286,13 @@ func (store *Store) GetGCSPayload(job string) []*UpObj {
 }
 
 //returns all job buckets
-func (store *Store) GetServerPayload(job string) []*UpObj {
+func (self *Store) GetServerPayload(job string) []*UpObj {
     var path = job + "|"
 
     var gcs_payload = make([]*UpObj, 0)
     job_key := []byte(job)
 
-    err := store.db.View(func(tx *bolt.Tx) error {
+    err := self.db.View(func(tx *bolt.Tx) error {
 
         jb := tx.Bucket(job_key)
         if jb == nil {
@@ -236,15 +300,15 @@ func (store *Store) GetServerPayload(job string) []*UpObj {
             return nil
         }
 
-        tasks := store.GetAllTasksNotDone(jb)
+        tasks := self.GetAllTasksNotDone(jb)
 
         for _, tk := range tasks {
             tk_path := path + string(tk) + "|"
             tb := jb.Bucket(tk)
             imb := tb.Bucket([]byte(ImageDataKey))
 
-            tsk_imgs, err := store.GetAllGCSData(imb)
-            if store.IsErr(err) {
+            tsk_imgs, err := self.GetAllGCSData(imb)
+            if self.IsErr(err) {
                 return err
             }
             for k, im := range tsk_imgs {
@@ -269,14 +333,14 @@ func (store *Store) GetServerPayload(job string) []*UpObj {
     return gcs_payload
 }
 
-func (store *Store) GetAllTasksNotDone(b *bolt.Bucket) [][]byte {
+func (self *Store) GetAllTasksNotDone(b *bolt.Bucket) [][]byte {
     var tasks = make([][]byte, 0)
     c := b.Cursor()
     for k, v := c.Seek([]byte(TaskPrefix)); bytes.HasPrefix(
         k, []byte(TaskPrefix)); k, v = c.Next() {
         if v == nil {
             tb := b.Bucket(k)
-            if !store.IsDone(tb) {
+            if !self.IsDone(tb) {
                 tasks = append(tasks, k)
             }
         }
@@ -284,7 +348,7 @@ func (store *Store) GetAllTasksNotDone(b *bolt.Bucket) [][]byte {
     return tasks
 }
 
-func (store *Store) GetAllImgData(b *bolt.Bucket) (map[string]Img, error) {
+func (self *Store) GetAllImgData(b *bolt.Bucket) (map[string]Img, error) {
     var imgs = make(map[string]Img, 0)
     c := b.Cursor()
     for k, v := c.Seek([]byte(ImgPrefix)); bytes.HasPrefix(
@@ -298,7 +362,7 @@ func (store *Store) GetAllImgData(b *bolt.Bucket) (map[string]Img, error) {
     return imgs, nil
 }
 
-func (store *Store) GetAllGCSData(b *bolt.Bucket) (map[string]Img, error) {
+func (self *Store) GetAllGCSData(b *bolt.Bucket) (map[string]Img, error) {
     var imgs = make(map[string]Img, 0)
     c := b.Cursor()
     for k, v := c.Seek([]byte(GCSPrefix)); bytes.HasPrefix(
@@ -312,21 +376,21 @@ func (store *Store) GetAllGCSData(b *bolt.Bucket) (map[string]Img, error) {
     return imgs, nil
 }
 
-func (store *Store) SetGCSImg(job_key, task_key, img_key string) bool {
-    err := store.db.Update(func(tx *bolt.Tx) error {
-        b, err := store.GetImgBucket(tx, job_key, task_key)
-        if store.IsErr(err) {
+func (self *Store) SetGCSImg(job_key, task_key, img_key string) bool {
+    err := self.db.Update(func(tx *bolt.Tx) error {
+        b, err := self.GetImgBucket(tx, job_key, task_key)
+        if self.IsErr(err) {
             return err
         }
         k := img_key
         v := b.Get([]byte(k))
         if len(v) > 0 {
             err = b.Delete([]byte(k))
-            if store.IsErr(err) {
+            if self.IsErr(err) {
                 return err
             }
             k = MakeImgKey(GCSPrefix, ImgIDFromKey(k))
-            return store.Put(b, k, string(v))
+            return self.Put(b, k, string(v))
         }
         return nil
     })
@@ -338,14 +402,14 @@ func (store *Store) SetGCSImg(job_key, task_key, img_key string) bool {
 }
 
 //update a list of keys
-func (store *Store) SetGCSImgs(keys []string) bool {
-    err := store.db.Update(func(tx *bolt.Tx) error {
+func (self *Store) SetGCSImgs(keys []string) bool {
+    err := self.db.Update(func(tx *bolt.Tx) error {
         for _, key := range keys {
             tokens := strings.Split(key, "|")
             job_key, task_key, img_key := tokens[0], tokens[1], tokens[2]
 
-            b, err := store.GetImgBucket(tx, job_key, task_key)
-            if store.IsErr(err) {
+            b, err := self.GetImgBucket(tx, job_key, task_key)
+            if self.IsErr(err) {
                 return err
             }
 
@@ -353,12 +417,12 @@ func (store *Store) SetGCSImgs(keys []string) bool {
             v := b.Get([]byte(k))
             if len(v) > 0 {
                 err = b.Delete([]byte(k))
-                if store.IsErr(err) {
+                if self.IsErr(err) {
                     return err
                 }
                 k = MakeImgKey(GCSPrefix, ImgIDFromKey(k))
-                err := store.Put(b, k, string(v))
-                if store.IsErr(err) {
+                err := self.Put(b, k, string(v))
+                if self.IsErr(err) {
                     return err
                 }
             }
@@ -373,10 +437,10 @@ func (store *Store) SetGCSImgs(keys []string) bool {
     return err == nil
 }
 
-func (store *Store) SetServerImgs(job_key, task_key string, img_keys []string) bool {
-    err := store.db.Update(func(tx *bolt.Tx) error {
-        b, err := store.GetImgBucket(tx, job_key, task_key)
-        if store.IsErr(err) {
+func (self *Store) SetServerImgs(job_key, task_key string, img_keys []string) bool {
+    err := self.db.Update(func(tx *bolt.Tx) error {
+        b, err := self.GetImgBucket(tx, job_key, task_key)
+        if self.IsErr(err) {
             return err
         }
         for _, k := range img_keys {
@@ -385,14 +449,14 @@ func (store *Store) SetServerImgs(job_key, task_key string, img_keys []string) b
 
                 err = b.Delete([]byte(k))
 
-                if store.IsErr(err) {
+                if self.IsErr(err) {
                     PrintlnError(err)
                     return err
                 }
 
                 k := MakeImgKey(ServerPrefix, ImgIDFromKey(k))
-                err := store.Put(b, k, string(v))
-                if store.IsErr(err) {
+                err := self.Put(b, k, string(v))
+                if self.IsErr(err) {
                     return err
                 }
             }
@@ -407,11 +471,11 @@ func (store *Store) SetServerImgs(job_key, task_key string, img_keys []string) b
     return err == nil
 }
 
-func (store *Store) GetServerTaskInfo(job_key, task_key string) (Payload, bool) {
+func (self *Store) GetServerTaskInfo(job_key, task_key string) (Payload, bool) {
     var taskinfo Payload
-    err := store.db.View(func(tx *bolt.Tx) error {
-        b, err := store.GetTaskBucket(tx, job_key, task_key)
-        if store.IsErr(err) {
+    err := self.db.View(func(tx *bolt.Tx) error {
+        b, err := self.GetTaskBucket(tx, job_key, task_key)
+        if self.IsErr(err) {
             return err
         }
 
@@ -429,11 +493,11 @@ func (store *Store) GetServerTaskInfo(job_key, task_key string) (Payload, bool) 
             kv[k] = string(v)
         }
         taskinfo.Date, err = strconv.ParseInt(kv["date"], 10, 64)
-        if store.IsErr(err) {
+        if self.IsErr(err) {
             return err
         }
         pid, err := strconv.ParseInt(kv["parcelId"], 10, 64)
-        if store.IsErr(err) {
+        if self.IsErr(err) {
             return err
         }
         taskinfo.ParcelId = int(pid)
@@ -450,11 +514,11 @@ func (store *Store) GetServerTaskInfo(job_key, task_key string) (Payload, bool) 
     return taskinfo, err == nil
 }
 
-func (store *Store) GetGCSImgs(job_key, task_key string, imgs []string) ([]Imager, bool) {
+func (self *Store) GetGCSImgs(job_key, task_key string, imgs []string) ([]Imager, bool) {
     var images = make([]Imager, 0)
-    err := store.db.View(func(tx *bolt.Tx) error {
-        b, err := store.GetImgBucket(tx, job_key, task_key)
-        if store.IsErr(err) {
+    err := self.db.View(func(tx *bolt.Tx) error {
+        b, err := self.GetImgBucket(tx, job_key, task_key)
+        if self.IsErr(err) {
             return err
         }
 
@@ -475,7 +539,7 @@ func (store *Store) GetGCSImgs(job_key, task_key string, imgs []string) ([]Image
     return images, err == nil
 }
 
-func (store *Store) GetImgBucket(tx *bolt.Tx, job_key, task_key string) (*bolt.Bucket, error) {
+func (self *Store) GetImgBucket(tx *bolt.Tx, job_key, task_key string) (*bolt.Bucket, error) {
     jb := tx.Bucket([]byte(job_key))
     if jb == nil {
         return nil, errors.New("undefined job bucket...")
@@ -489,7 +553,7 @@ func (store *Store) GetImgBucket(tx *bolt.Tx, job_key, task_key string) (*bolt.B
     return b, nil
 }
 
-func (store *Store) GetTaskBucket(tx *bolt.Tx, job_key, task_key string) (*bolt.Bucket, error) {
+func (self *Store) GetTaskBucket(tx *bolt.Tx, job_key, task_key string) (*bolt.Bucket, error) {
     jb := tx.Bucket([]byte(job_key))
     if jb == nil {
         return nil, errors.New("undefined job bucket...")
@@ -502,9 +566,9 @@ func (store *Store) GetTaskBucket(tx *bolt.Tx, job_key, task_key string) (*bolt.
     return b, nil
 }
 
-func (store *Store) FinalizeDBState(job string) bool {
+func (self *Store) FinalizeDBState(job string) bool {
     alldone := true
-    err := store.db.Update(func(tx *bolt.Tx) error {
+    err := self.db.Update(func(tx *bolt.Tx) error {
         jb := tx.Bucket([]byte(job))
         if jb == nil {
             return errors.New("invalid bucket")
@@ -525,24 +589,24 @@ func (store *Store) FinalizeDBState(job string) bool {
         for _, tb := range task_buckets {
             imb := tb.Bucket([]byte(ImageDataKey))
             done := true
-            if store.AnyPendingToGCS(imb) {
+            if self.AnyPendingToGCS(imb) {
                 done, alldone = false, false
-                err := store.MarkNotDone(tb)
-                if store.IsErr(err) {
+                err := self.MarkNotDone(tb)
+                if self.IsErr(err) {
                     return err
                 }
             }
-            if store.AnyPendingToServer(imb) {
+            if self.AnyPendingToServer(imb) {
                 done, alldone = false, false
-                err := store.MarkNotDone(tb)
-                if store.IsErr(err) {
+                err := self.MarkNotDone(tb)
+                if self.IsErr(err) {
                     return err
                 }
             }
 
             if done {
-                err := store.MarkDone(tb)
-                if store.IsErr(err) {
+                err := self.MarkDone(tb)
+                if self.IsErr(err) {
                     return err
                 }
             }
@@ -550,20 +614,20 @@ func (store *Store) FinalizeDBState(job string) bool {
         //after marking all tasks as done or not done
         //if all is still done, mark job as done
         if alldone {
-            err := store.MarkDone(jb)
-            if store.IsErr(err) {
+            err := self.MarkDone(jb)
+            if self.IsErr(err) {
                 return err
             }
         }
         return nil
     })
-    if store.IsErr(err) {
+    if self.IsErr(err) {
         PrintlnError(err)
     }
     return alldone
 }
 
-func (store *Store) AnyPendingToGCS(imgB *bolt.Bucket) bool {
+func (self *Store) AnyPendingToGCS(imgB *bolt.Bucket) bool {
     c := imgB.Cursor()
     pending := false
     for k, _ := c.Seek([]byte(ImgPrefix)); bytes.HasPrefix(
@@ -575,7 +639,7 @@ func (store *Store) AnyPendingToGCS(imgB *bolt.Bucket) bool {
     return pending
 }
 
-func (store *Store) AnyPendingToServer(imgB *bolt.Bucket) bool {
+func (self *Store) AnyPendingToServer(imgB *bolt.Bucket) bool {
     c := imgB.Cursor()
     pending := false
     for k, _ := c.Seek([]byte(GCSPrefix)); bytes.HasPrefix(
@@ -596,6 +660,9 @@ func ImgIDFromKey(key string) string {
     return tokens[len(tokens) - 1]
 }
 
+func create_bucket(b *bolt.Bucket, key string) (*bolt.Bucket, error) {
+    return b.CreateBucketIfNotExists([]byte(key))
+}
 
 func next_id(b *bolt.Bucket) (string, error) {
     id, err := b.NextSequence()
