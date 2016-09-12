@@ -1,18 +1,12 @@
 package main
 
 import (
-    "github.com/boltdb/bolt"
     "log"
     "os"
     "encoding/csv"
     "bufio"
     "io"
-    "bytes"
-    "strconv"
-    "time"
-    "strings"
     "simplex/prj"
-    "path/filepath"
     "gopkg.in/cheggaaa/pb.v1"
     "github.com/tj/go-spin"
     "path"
@@ -22,7 +16,6 @@ import (
 
 const DBPath = "/home/titus/01/dev/godev/src/simplex/data/db/mtraffic.db"
 
-var mtDB *bolt.DB
 var TotalLoad = 0
 var BufferLimit int = 100000
 var CurFile string
@@ -30,11 +23,12 @@ var CurFile string
 var proj = prj.NewSRS(4326).AsGeographic().To(prj.NewSRS(3857))
 
 func main() {
-    OpenStorage()
-    defer CloseStorage()
+    var mtStore = NewStorage(DBPath)
+    defer mtStore.Close()
 
-    var mtStore = NewStorage(mtDB)
-    var mmsi_files = fetchFiles("/home/titus/01/dev/godev/src/simplex/data/tmp/data/*.csv")
+    var fpath = "/home/titus/01/dev/godev/src/simplex/data/tmp/data/*.csv"
+    var mmsi_files = FetchFiles(fpath)
+
     bar := pb.StartNew(len(mmsi_files))
     for _, file := range mmsi_files {
         bar.Increment()
@@ -42,35 +36,10 @@ func main() {
         _, CurFile = path.Split(file)
         bulk_load_mtraffic(file, mtStore)
     }
+
     bar.FinishPrint("done!")
     fmt.Printf("\nBulkloaded %v points\n", TotalLoad)
 }
-
-//open upload db
-func OpenStorage() {
-    db, err := bolt.Open(DBPath, 0600, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-    mtDB = db
-}
-
-//close upoad storage
-func CloseStorage() {
-    if mtDB != nil {
-        mtDB.Close()
-    }
-}
-
-//fetch files in directory
-func fetchFiles(src_pattern string) []string {
-    files, err := filepath.Glob(src_pattern)
-    if err != nil {
-        log.Fatalln(err)
-    }
-    return files
-}
-
 
 //load file
 func bulk_load_mtraffic(fname string, mtStore *Store) {
@@ -138,7 +107,7 @@ func mtraffic_record(line []string) (*MTraffic, error) {
     var iN = 3
     var initvals = make([]int, iN)
     for i, v := range line[:iN] {
-        val, err := parseInt(v)
+        val, err := ParseInt(v)
         if err != nil {
             return nil, err
         }
@@ -149,37 +118,37 @@ func mtraffic_record(line []string) (*MTraffic, error) {
     status := initvals[2]
 
     station := line[3]
-    speed, err := parseFloat(line[4])
+    speed, err := ParseFloat(line[4])
     if err != nil {
         return nil, err
     }
 
-    lng, err := parseFloat(line[5])
+    lng, err := ParseFloat(line[5])
     if err != nil {
         return nil, err
     }
 
-    lat, err := parseFloat(line[6])
+    lat, err := ParseFloat(line[6])
     if err != nil {
         return nil, err
     }
 
-    course, err := parseFloat(line[7])
+    course, err := ParseFloat(line[7])
     if err != nil {
         return nil, err
     }
 
-    heading, err := parseFloat(line[8])
+    heading, err := ParseFloat(line[8])
     if err != nil {
         return nil, err
     }
 
-    timestamp, err := parseTime(line[9])
+    timestamp, err := ParseTime(line[9])
     if err != nil {
         return nil, err
     }
 
-    vesseltype, err := parseInt(line[10])
+    vesseltype, err := ParseInt(line[10])
     if err != nil {
         return nil, err
     }
@@ -204,27 +173,6 @@ func mtraffic_record(line []string) (*MTraffic, error) {
     }, nil
 }
 
-func parseInt(v string) (int, error) {
-    var vv = bytes.Trim([]byte(v), "\xef\xbb\xbf")
-    return strconv.Atoi(string(vv))
-}
-
-func parseFloat(v string) (float64, error) {
-    var vv = bytes.Trim([]byte(v), "\xef\xbb\xbf")
-    return strconv.ParseFloat(string(vv), 64)
-}
-
-func parseTime(v string) (time.Time, error) {
-    if !strings.Contains(v, "T") {
-        tokens := strings.Split(v, " ")
-        v = strings.Join(tokens, "T")
-    }
-    if !strings.Contains(v, "Z") {
-        v = v + "Z"
-    }
-    vv, _ := time.Parse(time.RFC3339, v)
-    return vv, nil
-}
 
 
 

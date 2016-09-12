@@ -33,3 +33,5 @@ func Put(b *bolt.Bucket, key []byte, value []byte) error {
 func IsErr(err error) bool {
 	return err != nil
 }
+
+

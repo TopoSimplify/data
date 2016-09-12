@@ -42,4 +42,3 @@ func (mt *MTraffic) Save(b *bolt.Bucket) error {
 
 	return nil
 }
-
