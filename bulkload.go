@@ -12,15 +12,15 @@ import (
     "time"
     "strings"
     "simplex/prj"
-    . "./store"
     "path/filepath"
     "gopkg.in/cheggaaa/pb.v1"
     "github.com/tj/go-spin"
     "path"
     "fmt"
+    . "./store"
 )
 
-const UploadDBPath = "/home/titus/01/dev/godev/src/simplex/data/db/mtraffic.db"
+const DBPath = "/home/titus/01/dev/godev/src/simplex/data/db/mtraffic.db"
 
 var mtDB *bolt.DB
 var TotalLoad = 0
@@ -34,11 +34,11 @@ func main() {
     defer CloseStorage()
 
     var mtStore = NewStorage(mtDB)
-    var mmsi_files = fetchFiles("/home/titus/01/dev/godev/src/simplex/data/tmp/*.csv")
+    var mmsi_files = fetchFiles("/home/titus/01/dev/godev/src/simplex/data/tmp/data/*.csv")
     bar := pb.StartNew(len(mmsi_files))
     for _, file := range mmsi_files {
         bar.Increment()
-        fmt.Print("\n\n")
+        fmt.Println()
         _, CurFile = path.Split(file)
         bulk_load_mtraffic(file, mtStore)
     }
@@ -48,7 +48,7 @@ func main() {
 
 //open upload db
 func OpenStorage() {
-    db, err := bolt.Open(UploadDBPath, 0600, nil)
+    db, err := bolt.Open(DBPath, 0600, nil)
     if err != nil {
         log.Fatal(err)
     }
