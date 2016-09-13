@@ -2,21 +2,20 @@ package recon
 
 import . "simplex/data/store"
 
-type Traffic []*MTraffic
 
-func (self *Traffic) Shift() *MTraffic {
+func  Shift(self *[]*MTraffic) *MTraffic {
 	this := *self
 	x, this := this[0], this[1:]
 	*self = this
 	return x
 }
 
-func (self *Traffic) UnShift(x *MTraffic) int {
-	*self = append(Traffic{x}, *self...)
+func  UnShift(self *[]*MTraffic, x *MTraffic) int {
+	*self = append([]*MTraffic{x}, *self...)
 	return len(*self)
 }
 
-func (self *Traffic) Pop() *MTraffic {
+func Pop(self *[]*MTraffic) *MTraffic {
 	var a = *self
 	var x *MTraffic
 	var n = len(a) - 1
@@ -24,7 +23,7 @@ func (self *Traffic) Pop() *MTraffic {
 	return x
 }
 
-func (self *Traffic)Delete(i *MTraffic) *MTraffic {
+func Delete(self *[]*MTraffic, i int) *MTraffic {
 	a := *self
 	x := a[i]
 	copy(a[i:], a[i + 1:])
@@ -33,19 +32,19 @@ func (self *Traffic)Delete(i *MTraffic) *MTraffic {
 	return x
 }
 
-func (self *Traffic) Push(x *MTraffic) int {
+func  Push(self *[]*MTraffic, x *MTraffic) int {
 	*self = append(*self, x)
 	return len(*self)
 }
 
-func (self *Traffic) Extend(i *MTraffic, other Traffic) *Traffic {
+func  Extend(self *[]*MTraffic, i int, other []*MTraffic) *[]*MTraffic {
 	b := other[0 :len(other):len(other)]
 	a := *self
 	*self = append(a[:i], append(b, a[i:]...)...)
 	return self
 }
 
-func (self *Traffic) Reverse() *Traffic {
+func  Reverse(self *[]*MTraffic) *[]*MTraffic {
 	a := *self
 	for l, r := 0, len(a) - 1; l < r; l, r = l + 1, r - 1 {
 		a[l], a[r] = a[r], a[l]
@@ -54,35 +53,32 @@ func (self *Traffic) Reverse() *Traffic {
 	return self
 }
 
-func (self *Traffic) Len() int {
-	return len(*self)
+func  Len(self []*MTraffic) int {
+	return len(self)
 }
 
-func (self *Traffic) IsEmpty() bool {
-	return self.Len() == 0
+func  IsEmpty(self []*MTraffic) bool {
+	return Len(self) == 0
 }
 
-func First(t Traffic) *MTraffic{
-	if !t.IsEmpty() {
+func First(t []*MTraffic) *MTraffic{
+	if !IsEmpty(t) {
 		return t[0]
 	}
 	return nil
 }
 
-func Last(t Traffic) *MTraffic{
-	if !t.IsEmpty() {
+func Last(t []*MTraffic) *MTraffic{
+	if !IsEmpty(t) {
 		return t[len(t) - 1]
 	}
 	return nil
 }
 
 
-func Shift(self []Traffic ) Traffic {
-	this := *self
-	if len(this) == 0 {
-		return Traffic{}
+func ShiftQueue(self [][]*MTraffic ) ([]*MTraffic, [][]*MTraffic) {
+	if len(self) == 0 {
+		return []*MTraffic{}, [][]*MTraffic{}
 	}
-	x, this := this[0], this[1:]
-	*self = this
-	return x
+	return self[0], self[1:]
 }

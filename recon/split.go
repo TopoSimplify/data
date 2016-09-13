@@ -4,7 +4,7 @@ import (
 	. "simplex/data/store"
 	"math"
 )
-const null = -9999
+const null = -9999.0
 
 //split tracjectories into consistent segments
 func SplitTraj(pings []*MTraffic) [][]*MTraffic {

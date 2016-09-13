@@ -8,7 +8,6 @@ import (
 	. "simplex/geom"
 	. "./store"
 	. "./recon"
-	"math"
 )
 
 const DBPath = "/home/titus/01/dev/godev/src/simplex/data/db/mtraffic.db"
@@ -34,7 +33,7 @@ func main() {
 	for _, v := range vessels {
 		bar.Increment()
 		var pings = mtStore.AllPings(v)
-		trajectories := SplitTraj(pings)
+		var trajectories = SplitTraj(pings)
 
 		for _, trjs := range trajectories {
 			coords := make([]*Point, 0)
