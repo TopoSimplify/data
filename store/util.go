@@ -46,9 +46,10 @@ func UnShift(a []*Obj, b []*Obj) []*Obj {
 	return append(_a, b...)
 }
 
-func UnShiftQueue(queue [][]*Obj, b []*Obj) [][]*Obj {
+func UnShiftQueue(queue *[][]*Obj, b []*Obj) [][]*Obj {
 	_b := [][]*Obj{b}
-	return append(_b, queue...)
+	*queue = append(_b, (*queue)...)
+	return *queue
 }
 
 func Pop(self *[]*MTraffic) *MTraffic {
