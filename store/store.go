@@ -48,16 +48,17 @@ func (store *Store) BulkLoadStorage(mbuffer []*MTraffic) error {
 }
 
 //returns all job buckets
-func (self *Store) AllVessels() []int {
-    keys := make([]int, 0)
+func (self *Store) AllVessels() [][]byte {
+    keys := make([][]byte, 0)
     err := self.db.View(func(tx *bolt.Tx) error {
+        b := tx.Bucket([]byte("1"))
+        if b == nil {
+            panic ("invalid bucket")
+        }
         // Assume bucket exists and has keys
         tx.ForEach(func(k []byte, _ *bolt.Bucket) error {
-            id, err := strconv.Atoi(string(k))
-            if err != nil {
-                log.Fatalln(err)
-            }
-            keys = append(keys, id)
+			key := make([]byte, len(k)); copy(key, k)
+            keys = append(keys, key)
             return nil
         })
         return nil
@@ -68,11 +69,12 @@ func (self *Store) AllVessels() []int {
     return keys
 
 }
+
 //returns all job buckets
-func (self *Store) AllPings(id int) []*MTraffic {
-    var traffic = make([]*MTraffic, 0)
+func (self *Store) AllPings(key []byte) []*Obj {
+    var traffic = make([]*Obj, 0)
     err := self.db.View(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte(strconv.Itoa(id)))
+        b := tx.Bucket(key)
         c := b.Cursor()
         for k, v := c.First(); k != nil; k, v = c.Next() {
             if v != nil {
@@ -80,7 +82,7 @@ func (self *Store) AllPings(id int) []*MTraffic {
                 if err := json.Unmarshal(v, mt); err != nil {
                     return err
                 }
-                traffic = append(traffic, mt)
+                traffic = append(traffic, NewObj(mt))
             }
         }
         return nil

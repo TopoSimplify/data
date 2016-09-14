@@ -1,20 +1,15 @@
-package recon
+package store
 
-import (
-	. "simplex/data/store"
-	"math"
-)
-const null = -9999.0
+import "simplex/util/math"
 
 //split tracjectories into consistent segments
-func SplitTraj(pings []*MTraffic) [][]*MTraffic {
-	trajectories := make([][]*MTraffic, 0)
-	traj := make([]*MTraffic, 0)
-	prvdt := null
+func SplitTraj(pings []*Obj) [][]*Obj {
+	trajectories := make([][]*Obj, 0)
+	traj := make([]*Obj, 0)
 
 	var fn_flush = func() {
 		trajectories = append(trajectories, traj)
-		traj = make([]*MTraffic, 0)
+		traj = make([]*Obj, 0)
 	}
 
 	for i := range pings {
@@ -23,13 +18,9 @@ func SplitTraj(pings []*MTraffic) [][]*MTraffic {
 		} else {
 			n := len(traj)
 			a, b := traj[n - 1], pings[i]
-			dt := TimeDelta(a, b)
-			if prvdt == null {
-				prvdt = dt
-			}
-			ddt := math.Abs(math.Abs(prvdt) - dt)
+			b.Delta(a).DDelta(a)
 
-			if (dt < 0.5) && (ddt < 0.1) {
+			if (b.dt < 0.5) && !math.FloatEqual(a.dt, a.ddt) && (b.ddt < 0.1) {
 				traj = append(traj, b)
 			} else {
 				fn_flush()

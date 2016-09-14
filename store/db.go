@@ -1,11 +1,40 @@
-package recon
+package store
 
 import (
 	"simplex/struct/rtree"
 	"github.com/jonas-p/go-shp"
 	"log"
 	"simplex/geom"
+	"bufio"
+	"strings"
+	"io"
+	"simplex/geom/mbr"
 )
+
+
+
+//in-memory rtree
+func NewDB() *rtree.RTree {
+	return rtree.NewRTree(16)
+}
+
+func SearchDb(db *rtree.RTree, query *mbr.MBR) []geom.Geometry {
+	nodes := db.Search(query)
+	geoms := make([]geom.Geometry, len(nodes))
+	for i := range nodes {
+		geoms[i] = nodes[i].GetItem().(geom.Geometry)
+	}
+	return geoms
+}
+
+func ReadBufferByLine(rd *bufio.Reader) (func() (string, bool)) {
+	var lnrd = func() (string, bool) {
+		line, err := rd.ReadString('\n')
+		return strings.TrimSpace(line), err != io.EOF
+	}
+	return lnrd
+}
+
 
 func LoadFromShpFile(db *rtree.RTree, file_name string) *rtree.RTree {
 	// open a shapefile for reading
@@ -30,5 +59,4 @@ func LoadFromShpFile(db *rtree.RTree, file_name string) *rtree.RTree {
 	}
 	return db.Load(objs)
 }
-
 
