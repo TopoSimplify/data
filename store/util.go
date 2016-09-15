@@ -15,6 +15,16 @@ func ItoB(i int) []byte {
 	return B(strconv.Itoa(i))
 }
 
+//next id
+func NextId(b *bolt.Bucket) ([]byte, error) {
+    id, err := b.NextSequence()
+    if err != nil {
+        return nil , err
+    }
+    return B(strconv.FormatUint(id, 10)), nil
+}
+
+
 //create id
 func createTaskID(id interface{}) string {
 	return fmt.Sprintf("%v", id)

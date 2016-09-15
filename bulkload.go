@@ -64,7 +64,7 @@ func bulk_load_mtraffic(fname string, mtStore *Store) {
 
     //empty buffer
     var drainBuffer = func() {
-        err := mtStore.BulkLoadStorage(mtbuffer)
+        err := mtStore.BulkLoadMtStorage(mtbuffer)
         if err != nil {
             log.Fatalln(err)
         }

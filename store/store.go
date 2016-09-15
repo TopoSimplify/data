@@ -3,7 +3,6 @@ package store
 import (
     "github.com/boltdb/bolt"
     "log"
-    "strconv"
     "encoding/json"
 )
 
@@ -22,8 +21,7 @@ func (store *Store) Close() {
 }
 
 //Stores a buffer of marrine traffic records
-func (store *Store) BulkLoadStorage(mbuffer []*MTraffic) error {
-
+func (store *Store) BulkLoadMtStorage(mbuffer []*MTraffic) error {
     return store.db.Update(func(tx *bolt.Tx) error {
         buckList := make(map[int]*bolt.Bucket)
         var vb *bolt.Bucket
@@ -31,7 +29,7 @@ func (store *Store) BulkLoadStorage(mbuffer []*MTraffic) error {
         for _, mt := range mbuffer {
             vb = buckList[mt.MMSI]
             if vb == nil {
-                vb, err = tx.CreateBucketIfNotExists(B(strconv.Itoa(mt.MMSI)))
+                vb, err = tx.CreateBucketIfNotExists(ItoB(mt.MMSI))
                 if IsErr(err) {
                     return err
                 }
@@ -44,18 +42,13 @@ func (store *Store) BulkLoadStorage(mbuffer []*MTraffic) error {
         }
         return nil
     })
-
 }
 
 //returns all job buckets
 func (self *Store) AllVessels() [][]byte {
     keys := make([][]byte, 0)
     err := self.db.View(func(tx *bolt.Tx) error {
-        b := tx.Bucket([]byte("1"))
-        if b == nil {
-            panic ("invalid bucket")
-        }
-        // Assume bucket exists and has keys
+        // assume bucket exists and has keys
         tx.ForEach(func(k []byte, _ *bolt.Bucket) error {
 			key := make([]byte, len(k)); copy(key, k)
             keys = append(keys, key)

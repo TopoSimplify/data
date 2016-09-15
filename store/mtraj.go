@@ -3,10 +3,10 @@ package store
 import (
     "encoding/json"
     "github.com/boltdb/bolt"
-    "strconv"
+    "log"
 )
 /*
-   imonum, mmsi, status, station, speed, long, lat, course, heading, time, type
+   mmsi, traj
  */
 type MTraj struct {
     MMSI int            `json:"mmsi"`
@@ -16,7 +16,7 @@ type MTraj struct {
 
 //creates time as id of bytes
 func (mt *MTraj)  Id() []byte {
-    return []byte(strconv.Itoa(mt.MMSI))
+    return ItoB(mt.MMSI)
 }
 
 //saves self to a given bucket
@@ -26,10 +26,40 @@ func (mt *MTraj) Save(b *bolt.Bucket) error {
     if IsErr(err) {
         return err
     }
-
-    if err = Put(b, mt.Id(), v); IsErr(err) {
+    k, err := NextId(b)
+    if IsErr(err) {
+        log.Fatalln(err)
+    }
+    if err = Put(b, k, v); IsErr(err) {
         return err
     }
 
     return nil
 }
+
+
+//Stores a buffer of marrine traffic records
+func (store *Store) BulkLoadTrajStorage(mbuffer []*MTraj) error {
+    return store.db.Update(func(tx *bolt.Tx) error {
+        buckList := make(map[int]*bolt.Bucket)
+        var vb *bolt.Bucket
+        var err error
+
+        for _, mt := range mbuffer {
+            vb = buckList[mt.MMSI]
+            if vb == nil {
+                vb, err = tx.CreateBucketIfNotExists(mt.Id())
+                if IsErr(err) {
+                    return err
+                }
+                buckList[mt.MMSI] = vb
+            }
+            mt.Save(vb)
+            if IsErr(err) {
+                return err
+            }
+        }
+        return nil
+    })
+}
+
