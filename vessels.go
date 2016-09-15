@@ -26,8 +26,10 @@ const (
 func main() {
 	var mtDB = NewStorage(DBPath)
 	defer mtDB.Close()
+	//-----------------------------------------'
 	var tjDB = NewStorage(MtrajPath)
 	defer tjDB.Close()
+	//-----------------------------------------'
 
 	var vessels = mtDB.AllVessels()
 	var db = LoadFromShpFile(NewDB(), ShpData)
