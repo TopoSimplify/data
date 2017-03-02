@@ -6,12 +6,9 @@ import (
 	"simplex/geom"
 	"simplex/data/store"
 	"simplex/util/math"
-	"simplex/data/config"
 	"simplex/struct/rtree"
 	"gopkg.in/cheggaaa/pb.v1"
 )
-
-
 
 const (
 	Join = iota
@@ -20,20 +17,20 @@ const (
 )
 
 func main() {
-	var mtDB = store.NewStorage(config.DBPath)
+	var mtDB = store.NewStorage(conf.DBPath)
 	defer mtDB.Close()
 	//-----------------------------------------'
-	var tjDB = store.NewStorage(config.MtrajPath)
+	var tjDB = store.NewStorage(conf.MtrajPath)
 	defer tjDB.Close()
 	//-----------------------------------------'
 
 	var vessels = mtDB.AllVessels()
-	var db = store.LoadFromShpFile(store.NewDB(), config.ShpData)
+	var db = store.LoadFromShpFile(store.NewDB(), conf.ShpData)
 	ProcessVessels(mtDB, tjDB, vessels, db)
 }
 
 func ProcessVessels(mtDB, tjDB *store.Store, vessels [][]byte, db *rtree.RTree) {
-	fid, err := os.Create(config.WKT)
+	fid, err := os.Create(conf.WKT)
 	defer fid.Close()
 
 	if err != nil {
@@ -63,7 +60,7 @@ func ProcessVessels(mtDB, tjDB *store.Store, vessels [][]byte, db *rtree.RTree) 
 
 		//save trajectories to disk
 		//----------------------------------------------
-		if len(trajectories) >= config.TrajBufferLimit {
+		if len(trajectories) >= conf.TrajBufferLimit {
 			tjDB.BulkLoadTrajStorage(trajectories)
 			trajectories = make([]*store.MTraj, 0)
 		}

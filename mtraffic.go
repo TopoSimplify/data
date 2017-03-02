@@ -11,22 +11,20 @@ import (
     "simplex/prj"
     "github.com/tj/go-spin"
     "gopkg.in/cheggaaa/pb.v1"
-    "simplex/data/config"
     "simplex/data/store"
     "path/filepath"
 )
 
 
 var TotalLoad = 0
-var BufferLimit int = 1000
 var CurFile string
 var proj = prj.NewSRS(4326).AsGeographic().To(prj.NewSRS(3857))
 
 func main() {
-    var mtStore = store.NewStorage(config.DBPath)
+    var mtStore = store.NewStorage(conf.DBPath)
     defer mtStore.Close()
 
-    var fpath = filepath.Join(config.CSVPath, "*.csv")
+    var fpath = filepath.Join(conf.CSVPath, "*.csv")
     var mmsi_files = store.FetchFiles(fpath)
 
     bar := pb.StartNew(len(mmsi_files))
@@ -95,7 +93,7 @@ func bulk_load_mtraffic(fname string, mtStore *store.Store) {
             //add item to buffer
             mtbuffer = append(mtbuffer, mt)
             //@limit
-            if len(mtbuffer) == BufferLimit {
+            if len(mtbuffer) == conf.CSVBufferLimit {
                 drainBuffer()
             }
         }
