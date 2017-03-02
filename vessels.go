@@ -8,14 +8,10 @@ import (
 	"simplex/util/math"
 	"os"
 	"log"
+	"simplex/data/config"
 )
 
-const DBPath = "/home/titus/01/dev/godev/src/simplex/data/db/mtraffic.db"
-const MtrajPath = "/home/titus/01/dev/godev/src/simplex/data/db/mtraj.db"
-const ShpData = "/home/titus/01/dev/godev/src/simplex/data/tmp/data/constraints/singlepartconstraints.shp"
-const WKT = "/home/titus/01/dev/godev/src/simplex/data/tmp/tj.wkt"
 
-const TrajBufferLimit = 100
 
 const (
 	Join = iota
@@ -24,20 +20,20 @@ const (
 )
 
 func main() {
-	var mtDB = NewStorage(DBPath)
+	var mtDB = NewStorage(config.DBPath)
 	defer mtDB.Close()
 	//-----------------------------------------'
-	var tjDB = NewStorage(MtrajPath)
+	var tjDB = NewStorage(config.MtrajPath)
 	defer tjDB.Close()
 	//-----------------------------------------'
 
 	var vessels = mtDB.AllVessels()
-	var db = LoadFromShpFile(NewDB(), ShpData)
+	var db = LoadFromShpFile(NewDB(), config.ShpData)
 	ProcessVessels(mtDB, tjDB, vessels, db)
 }
 
 func ProcessVessels(mtDB, tjDB *Store, vessels [][]byte, db *rtree.RTree) {
-	fid, err := os.Create(WKT)
+	fid, err := os.Create(config.WKT)
 	defer fid.Close()
 
 	if err != nil {
@@ -67,7 +63,7 @@ func ProcessVessels(mtDB, tjDB *Store, vessels [][]byte, db *rtree.RTree) {
 
 		//save trajectories to disk
 		//----------------------------------------------
-		if len(trajectories) >= TrajBufferLimit {
+		if len(trajectories) >= config.TrajBufferLimit {
 			tjDB.BulkLoadTrajStorage(trajectories)
 			trajectories = make([]*MTraj, 0)
 		}
@@ -118,13 +114,13 @@ func ComposeTrajs(trajectories [][]*Obj, db *rtree.RTree) [][]*Obj {
 			Shift(&trajectories)
 			Shift(&trajectories)
 			continue
-		} else if (state == Split) {
+		} else if state == Split {
 			_a = Shift(&trajectories)
 			if len(_a) > 1 {
 				comp = append(comp, _a)
 			}
 			continue
-		} else if (state == Join) {
+		} else if state == Join {
 			_a = Shift(&trajectories)
 			_b = Shift(&trajectories)
 			_ab = Extend(_a, _b)
@@ -157,7 +153,7 @@ func Inter(first, last, data []*Obj, c *Obj, db *rtree.RTree) int {
 		geomlist = append(geomlist, pnts[0])
 	}
 
-	var ab_coincides = pta.Equals(ptb)
+	var ab_coincides = pta.Equals2D(ptb)
 
 	if ab_coincides {
 		pnts = append(pnts, pta)

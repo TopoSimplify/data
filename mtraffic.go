@@ -3,31 +3,31 @@ package main
 import (
     "log"
     "os"
-    "encoding/csv"
     "bufio"
     "io"
-    "simplex/prj"
-    "gopkg.in/cheggaaa/pb.v1"
-    "github.com/tj/go-spin"
     "path"
     "fmt"
-    . "./store"
+    "encoding/csv"
+    "simplex/prj"
+    "github.com/tj/go-spin"
+    "gopkg.in/cheggaaa/pb.v1"
+    "simplex/data/config"
+    "simplex/data/store"
+    "path/filepath"
 )
 
-const DBPath = "/home/titus/01/dev/godev/src/simplex/data/db/mtraffic.db"
 
 var TotalLoad = 0
-var BufferLimit int = 100000
+var BufferLimit int = 1000
 var CurFile string
-
 var proj = prj.NewSRS(4326).AsGeographic().To(prj.NewSRS(3857))
 
 func main() {
-    var mtStore = NewStorage(DBPath)
+    var mtStore = store.NewStorage(config.DBPath)
     defer mtStore.Close()
 
-    var fpath = "/home/titus/01/dev/godev/src/simplex/data/tmp/data/*.csv"
-    var mmsi_files = FetchFiles(fpath)
+    var fpath = filepath.Join(config.CSVPath, "*.csv")
+    var mmsi_files = store.FetchFiles(fpath)
 
     bar := pb.StartNew(len(mmsi_files))
     for _, file := range mmsi_files {
@@ -42,7 +42,7 @@ func main() {
 }
 
 //load file
-func bulk_load_mtraffic(fname string, mtStore *Store) {
+func bulk_load_mtraffic(fname string, mtStore *store.Store) {
     defer func() {
         if r := recover(); r != nil {
             fmt.Println("Recovered bulk load", r)
@@ -60,7 +60,7 @@ func bulk_load_mtraffic(fname string, mtStore *Store) {
     r := csv.NewReader(bufio.NewReader(fid))
 
     //mt buffer
-    var mtbuffer = make([]*MTraffic, 0)
+    var mtbuffer = make([]*store.MTraffic, 0)
 
     //empty buffer
     var drainBuffer = func() {
@@ -70,7 +70,7 @@ func bulk_load_mtraffic(fname string, mtStore *Store) {
         }
         TotalLoad += len(mtbuffer)
         //empty the buffer
-        mtbuffer = make([]*MTraffic, 0)
+        mtbuffer = make([]*store.MTraffic, 0)
         fmt.Printf("\r  \033[36mbulk:%v | loaded:%v\033[m %s ", CurFile, TotalLoad, spn.Next())
     }
 
@@ -103,11 +103,11 @@ func bulk_load_mtraffic(fname string, mtStore *Store) {
     }
 }
 
-func mtraffic_record(line []string) (*MTraffic, error) {
+func mtraffic_record(line []string) (*store.MTraffic, error) {
     var iN = 3
     var initvals = make([]int, iN)
     for i, v := range line[:iN] {
-        val, err := ParseInt(v)
+        val, err := store.ParseInt(v)
         if err != nil {
             return nil, err
         }
@@ -118,37 +118,37 @@ func mtraffic_record(line []string) (*MTraffic, error) {
     status := initvals[2]
 
     station := line[3]
-    speed, err := ParseFloat(line[4])
+    speed, err := store.ParseFloat(line[4])
     if err != nil {
         return nil, err
     }
 
-    lng, err := ParseFloat(line[5])
+    lng, err := store.ParseFloat(line[5])
     if err != nil {
         return nil, err
     }
 
-    lat, err := ParseFloat(line[6])
+    lat, err := store.ParseFloat(line[6])
     if err != nil {
         return nil, err
     }
 
-    course, err := ParseFloat(line[7])
+    course, err := store.ParseFloat(line[7])
     if err != nil {
         return nil, err
     }
 
-    heading, err := ParseFloat(line[8])
+    heading, err := store.ParseFloat(line[8])
     if err != nil {
         return nil, err
     }
 
-    timestamp, err := ParseTime(line[9])
+    timestamp, err := store.ParseTime(line[9])
     if err != nil {
         return nil, err
     }
 
-    vesseltype, err := ParseInt(line[10])
+    vesseltype, err := store.ParseInt(line[10])
     if err != nil {
         return nil, err
     }
@@ -158,7 +158,7 @@ func mtraffic_record(line []string) (*MTraffic, error) {
         return nil, err
     }
 
-    return &MTraffic{
+    return &store.MTraffic{
         IMOnum  : imonum,
         MMSI    : mmsi,
         Status  : status,
