@@ -1,14 +1,14 @@
 package main
 
 import (
-	"gopkg.in/cheggaaa/pb.v1"
-	. "simplex/geom"
-	. "./store"
-	"simplex/struct/rtree"
-	"simplex/util/math"
 	"os"
 	"log"
+	"simplex/geom"
+	"simplex/data/store"
+	"simplex/util/math"
 	"simplex/data/config"
+	"simplex/struct/rtree"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 
@@ -20,19 +20,19 @@ const (
 )
 
 func main() {
-	var mtDB = NewStorage(config.DBPath)
+	var mtDB = store.NewStorage(config.DBPath)
 	defer mtDB.Close()
 	//-----------------------------------------'
-	var tjDB = NewStorage(config.MtrajPath)
+	var tjDB = store.NewStorage(config.MtrajPath)
 	defer tjDB.Close()
 	//-----------------------------------------'
 
 	var vessels = mtDB.AllVessels()
-	var db = LoadFromShpFile(NewDB(), config.ShpData)
+	var db = store.LoadFromShpFile(store.NewDB(), config.ShpData)
 	ProcessVessels(mtDB, tjDB, vessels, db)
 }
 
-func ProcessVessels(mtDB, tjDB *Store, vessels [][]byte, db *rtree.RTree) {
+func ProcessVessels(mtDB, tjDB *store.Store, vessels [][]byte, db *rtree.RTree) {
 	fid, err := os.Create(config.WKT)
 	defer fid.Close()
 
@@ -41,22 +41,22 @@ func ProcessVessels(mtDB, tjDB *Store, vessels [][]byte, db *rtree.RTree) {
 	}
 
 	bar := pb.StartNew(len(vessels))
-	var trajectories = make([]*MTraj, 0)
+	var trajectories = make([]*store.MTraj, 0)
 
 	for _, key := range vessels {
 		bar.Increment()
 		var pings = mtDB.AllPings(key)
-		var tokens = SplitTraj(pings)
+		var tokens = store.SplitTraj(pings)
 		var components = ComposeTrajs(tokens, db)
 		for _, comp := range components {
-			trajs := make([]*MTraffic, 0)
+			trajs := make([]*store.MTraffic, 0)
 			for _, obj := range comp {
 				trajs = append(trajs, obj.Mt())
 			}
 			if len(trajs) > 1 {
 				CheckTiming(trajs)
 				mmsi := trajs[0].MMSI
-				tj := &MTraj{MMSI:mmsi, Traj:trajs}
+				tj := &store.MTraj{MMSI:mmsi, Traj:trajs}
 				trajectories = append(trajectories, tj)
 			}
 		}
@@ -65,14 +65,14 @@ func ProcessVessels(mtDB, tjDB *Store, vessels [][]byte, db *rtree.RTree) {
 		//----------------------------------------------
 		if len(trajectories) >= config.TrajBufferLimit {
 			tjDB.BulkLoadTrajStorage(trajectories)
-			trajectories = make([]*MTraj, 0)
+			trajectories = make([]*store.MTraj, 0)
 		}
 		//----------------------------------------------
 	}
 	bar.FinishPrint("done!")
 }
 
-func CheckTiming(data []*MTraffic){
+func CheckTiming(data []*store.MTraffic){
 	for i := 0 ; i < len(data) -1 ; i++ {
 		bln := data[i].Time.Equal(data[i+1].Time) ||data[i].Time.Before(data[i+1].Time)
 		if !bln {
@@ -80,8 +80,8 @@ func CheckTiming(data []*MTraffic){
 		}
 	}
 }
-func ComposeTrajs(trajectories [][]*Obj, db *rtree.RTree) [][]*Obj {
-	var comp = make([][]*Obj, 0)
+func ComposeTrajs(trajectories [][]*store.Obj, db *rtree.RTree) [][]*store.Obj {
+	var comp = make([][]*store.Obj, 0)
 
 	for len(trajectories) > 0 {
 		var n = len(trajectories)
@@ -89,18 +89,18 @@ func ComposeTrajs(trajectories [][]*Obj, db *rtree.RTree) [][]*Obj {
 			break
 		}
 
-		var _a, _b, _ab []*Obj
-		var a, b, c *Obj
+		var _a, _b, _ab []*store.Obj
+		var a, b, c *store.Obj
 
-		a = Last(trajectories[0])
+		a = store.Last(trajectories[0])
 		if n > 1 {
-			b = First(trajectories[1])
+			b = store.First(trajectories[1])
 		}
 
 		if n == 3 {
-			c = First(trajectories[2])
+			c = store.First(trajectories[2])
 		}
-		var first, last []*Obj
+		var first, last []*store.Obj
 		if len(trajectories) > 0 {
 			first = trajectories[0]
 		}
@@ -108,38 +108,38 @@ func ComposeTrajs(trajectories [][]*Obj, db *rtree.RTree) [][]*Obj {
 			last = trajectories[1]
 		}
 
-		var state = Inter(first, last, []*Obj{a, b}, c, db)
+		var state = Inter(first, last, []*store.Obj{a, b}, c, db)
 
 		if state == Drop {
-			Shift(&trajectories)
-			Shift(&trajectories)
+			store.Shift(&trajectories)
+			store.Shift(&trajectories)
 			continue
 		} else if state == Split {
-			_a = Shift(&trajectories)
+			_a = store.Shift(&trajectories)
 			if len(_a) > 1 {
 				comp = append(comp, _a)
 			}
 			continue
 		} else if state == Join {
-			_a = Shift(&trajectories)
-			_b = Shift(&trajectories)
-			_ab = Extend(_a, _b)
-			trajectories = UnShiftQueue(&trajectories, _ab)
+			_a = store.Shift(&trajectories)
+			_b = store.Shift(&trajectories)
+			_ab = store.Extend(_a, _b)
+			trajectories = store.UnShiftQueue(&trajectories, _ab)
 		}
 	}
 	return comp
 }
 
-func Inter(first, last, data []*Obj, c *Obj, db *rtree.RTree) int {
+func Inter(first, last, data []*store.Obj, c *store.Obj, db *rtree.RTree) int {
 
-	var ln *LineString
-	var pnts = make([]*Point, 0)
-	var geomlist = make([]Geometry, 0)
+	var ln *geom.LineString
+	var pnts = make([]*geom.Point, 0)
+	var geomlist = make([]geom.Geometry, 0)
 
 	for _, m := range data {
 		if m != nil {
 			mt := m.Mt()
-			pt := NewPointXY(mt.X, mt.Y)
+			pt := geom.NewPointXY(mt.X, mt.Y)
 			pnts = append(pnts, pt)
 			geomlist = append(geomlist, pt)
 		}
@@ -158,7 +158,7 @@ func Inter(first, last, data []*Obj, c *Obj, db *rtree.RTree) int {
 	if ab_coincides {
 		pnts = append(pnts, pta)
 	} else {
-		ln = NewLineString(pnts)
+		ln = geom.NewLineString(pnts)
 		geomlist = append(geomlist, ln)
 	}
 
@@ -172,7 +172,7 @@ func Inter(first, last, data []*Obj, c *Obj, db *rtree.RTree) int {
 	return caseinter(first, last, data, c, []bool{inter_a, inter_b, inter_a_b })
 }
 
-func caseinter(first, last, args []*Obj, c *Obj, results []bool) int {
+func caseinter(first, last, args []*store.Obj, c *store.Obj, results []bool) int {
 	var aint = results[0]
 	var bint = results[1]
 	var a_b_int = results[2]
@@ -220,7 +220,7 @@ func caseinter(first, last, args []*Obj, c *Obj, results []bool) int {
 			return Split
 		}
 		return Drop
-	} else if (case1 || case2 || case4 || case5) {
+	} else if case1 || case2 || case4 || case5 {
 		return Join
 	} else if case3 || case3gap {
 		return Join
@@ -244,10 +244,10 @@ func T(b bool) bool {
 	return b
 }
 
-func Intersects(db *rtree.RTree, geom Geometry) bool {
+func Intersects(db *rtree.RTree, geom geom.Geometry) bool {
 	var bln = false
 	if db != nil {
-		results := SearchDb(db, geom.BBox())
+		results := store.SearchDb(db, geom.BBox())
 		for i := 0; !bln && i < len(results); i++ {
 			bln = geom.Intersects(results[i])
 		}
@@ -256,7 +256,7 @@ func Intersects(db *rtree.RTree, geom Geometry) bool {
 	return bln
 }
 
-func isNill(o *Obj) bool {
+func isNill(o *store.Obj) bool {
 	return o == nil
 }
 
