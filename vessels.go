@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
 	"log"
-	"simplex/geom"
 	"simplex/data/store"
-	"simplex/util/math"
-	"simplex/struct/rtree"
+	"simplex/data/config"
+	"github.com/intdxdt/math"
 	"gopkg.in/cheggaaa/pb.v1"
+	"github.com/intdxdt/geom"
+	"github.com/intdxdt/rtree"
 )
 
 const (
@@ -15,6 +15,11 @@ const (
 	Split
 	Drop
 )
+
+var conf config.Config
+func init () {
+	conf = config.ReadConfig("mconfig.toml")
+}
 
 func main() {
 	var mtDB = store.NewStorage(conf.DBPath)
@@ -30,12 +35,6 @@ func main() {
 }
 
 func ProcessVessels(mtDB, tjDB *store.Store, vessels [][]byte, db *rtree.RTree) {
-	fid, err := os.Create(conf.WKT)
-	defer fid.Close()
-
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	bar := pb.StartNew(len(vessels))
 	var trajectories = make([]*store.MTraj, 0)

@@ -1,6 +1,6 @@
 package store
 
-import "simplex/util/math"
+import "github.com/intdxdt/math"
 
 //split tracjectories into consistent segments
 func SplitTraj(pings []*Obj) [][]*Obj {

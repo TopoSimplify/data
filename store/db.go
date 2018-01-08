@@ -1,14 +1,14 @@
 package store
 
 import (
-	"simplex/struct/rtree"
+	"github.com/intdxdt/rtree"
 	"github.com/jonas-p/go-shp"
 	"log"
-	"simplex/geom"
+	"github.com/intdxdt/geom"
 	"bufio"
 	"strings"
 	"io"
-	"simplex/geom/mbr"
+	"github.com/intdxdt/mbr"
 )
 
 
