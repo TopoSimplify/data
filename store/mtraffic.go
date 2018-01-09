@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"github.com/boltdb/bolt"
 )
-/*
-   imonum, mmsi, status, station, speed, long, lat, course, heading, time, type
- */
+//imonum, mmsi, status, station, speed, long, lat, course, heading, time, type
 type MTraffic struct {
 	IMOnum  int         `json:"imonum"  toml:"imonum"`
 	MMSI    int         `json:"mmsi"    toml:"mmsi"`

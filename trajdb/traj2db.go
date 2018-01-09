@@ -4,6 +4,7 @@ import (
 	"log"
 	"fmt"
 	"bytes"
+	"io/ioutil"
 	"simplex/db"
 	"database/sql"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 	"github.com/boltdb/bolt"
 	"simplex/data/store"
 	"github.com/naoina/toml"
-	"io/ioutil"
 )
 
 func main() {
@@ -39,9 +39,9 @@ func main() {
 		Table:  serverCfg.Table,
 	}
 	//createAndProcessTables(src)
-	//extractTrajectories(src)
+	extractTrajectories(src)
 
-	loadTraj(src)
+	//loadTraj(src)
 
 	fmt.Println("<done>")
 }
@@ -73,22 +73,24 @@ func extractTrajectories(src *db.DataSrc) {
 	}
 	var dest = "/media/dxdt/trajdata"
 	for h.Next() {
+		var node string
 		var id, size int
 		var length float64
-		var node string
+
 		h.Scan(&id, &node, &size, &length)
 		var mtraj = Deserialize(node)
+		mtraj.MMSI = id
 		dat, err := toml.Marshal(mtraj)
 		if err != nil {
 			log.Panic(err)
 		}
+
 		var fname = fmt.Sprintf(`%v/%v.toml`, dest, id)
 		err = ioutil.WriteFile(fname, dat, 0644)
 		if err != nil {
 			log.Panic(err)
 		}
 	}
-
 }
 
 func createAndProcessTables(src *db.DataSrc) {

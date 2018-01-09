@@ -8,9 +8,6 @@ import (
 	"simplex/data/config"
 	"github.com/boltdb/bolt"
 	"github.com/intdxdt/geom"
-	"fmt"
-	"strings"
-	"bytes"
 )
 
 const TrajPtSize = 200
