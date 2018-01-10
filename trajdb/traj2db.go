@@ -38,8 +38,8 @@ func main() {
 		Dim:    serverCfg.Dim,
 		Table:  serverCfg.Table,
 	}
-	//createAndProcessTables(src)
-	extractTrajectories(src)
+	createAndProcessTables(src)
+	//extractTrajectories(src)
 
 	//loadTraj(src)
 
@@ -112,9 +112,9 @@ func createAndProcessTables(src *db.DataSrc) {
 }
 
 func procTrajectories(s *store.Store, key []byte, src *db.DataSrc) int {
-	total := 0
+	total       := 0
 	bufferLimit := 100
-	rows := make([]string, 0)
+	rows        := make([]string, 0)
 
 	fnInsert := func() {
 		insertIntoTable(src, rows)
@@ -130,7 +130,7 @@ func procTrajectories(s *store.Store, key []byte, src *db.DataSrc) int {
 			var mtrj store.MTraj
 			err := json.Unmarshal(v, &mtrj)
 			if err != nil {
-				log.Fatalln(err)
+				log.Panic(err)
 			}
 
 			trj := make([]*geom.Point, 0)
@@ -138,7 +138,10 @@ func procTrajectories(s *store.Store, key []byte, src *db.DataSrc) int {
 				trj = append(trj, geom.NewPointXYZ(tj.X, tj.Y, float64(tj.Time.Unix())))
 			}
 			g := geom.NewLineString(trj)
-			row := fmt.Sprintf(`'%v', %v, %v`, Serialize(&mtrj), len(mtrj.Traj), g.Length())
+			// g.WKT(), src.SRID
+			// ST_GeomFromText('%v', %v)
+			row := fmt.Sprintf(`'%v', %v, %v, ST_GeomFromText('%v', %v)`,
+				Serialize(&mtrj), len(mtrj.Traj), g.Length(), g.WKT(), src.SRID )
 			rows = append(rows, row)
 			if len(rows) > bufferLimit {
 				fnInsert()
@@ -159,7 +162,7 @@ func procTrajectories(s *store.Store, key []byte, src *db.DataSrc) int {
 func insertIntoTable(src *db.DataSrc, rows []string) {
 	var buf bytes.Buffer
 	var n = len(rows) - 1
-	var columns = "node, size, length"
+	var columns = "node, size, length, geom"
 	for i, row := range rows {
 		buf.WriteString("(" + row + ")")
 		if i < n {
