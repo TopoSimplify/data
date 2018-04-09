@@ -21,7 +21,7 @@ func main() {
 	var pwd = common.ExecutionDir()
 	var srcFile = filepath.Join(pwd, "../resource/src.toml")
 
-	var serverCfg = (&config.Server{}).Load(srcFile)
+	var serverCfg = (&config.ServerConfig{}).Load(srcFile)
 	var dbCfg = serverCfg.DBConfig()
 
 	var sqlsrc, err = sql.Open("postgres", fmt.Sprintf(
