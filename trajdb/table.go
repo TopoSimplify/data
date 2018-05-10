@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"bytes"
 	"text/template"
-	"simplex/db"
+	"github.com/TopoSimplify/db"
 )
 
 const IdColumn = "id"

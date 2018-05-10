@@ -2,8 +2,8 @@ package store
 
 import (
 	"fmt"
-	"github.com/boltdb/bolt"
 	"strconv"
+	"github.com/boltdb/bolt"
 )
 //string to byte
 func B(s string) []byte {

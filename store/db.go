@@ -1,14 +1,14 @@
 package store
 
 import (
-	"github.com/intdxdt/rtree"
-	"github.com/jonas-p/go-shp"
+	"io"
 	"log"
-	"github.com/intdxdt/geom"
 	"bufio"
 	"strings"
-	"io"
 	"github.com/intdxdt/mbr"
+	"github.com/intdxdt/geom"
+	"github.com/intdxdt/rtree"
+	"github.com/jonas-p/go-shp"
 )
 
 

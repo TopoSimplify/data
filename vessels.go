@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"simplex/data/store"
-	"simplex/data/config"
+	"github.com/TopoSimplify/data/store"
+	"github.com/TopoSimplify/data/config"
 	"github.com/intdxdt/math"
 	"gopkg.in/cheggaaa/pb.v1"
 	"github.com/intdxdt/geom"

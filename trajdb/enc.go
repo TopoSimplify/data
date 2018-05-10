@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/base64"
-	"simplex/data/store"
+	"github.com/TopoSimplify/data/store"
 )
 
 // go binary encoder

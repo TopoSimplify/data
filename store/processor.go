@@ -1,8 +1,8 @@
 package store
 
 //import (
-//  . "simplex/struct/rtree"
-//  . "simplex/data/store"
+//  . "github.com/TopoSimplify/struct/rtree"
+//  . "github.com/TopoSimplify/data/store"
 //)
 
 //

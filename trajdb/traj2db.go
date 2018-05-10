@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"bytes"
 	"io/ioutil"
-	"simplex/db"
+	"github.com/TopoSimplify/db"
 	"database/sql"
 	"path/filepath"
 	"encoding/json"
-	"simplex/streamdp/common"
-	"simplex/streamdp/config"
-	"github.com/intdxdt/geom"
-	"github.com/boltdb/bolt"
-	"simplex/data/store"
 	"github.com/naoina/toml"
+	"github.com/boltdb/bolt"
+	"github.com/intdxdt/geom"
+	"github.com/TopoSimplify/data/store"
+	"github.com/TopoSimplify/streamdp/common"
+	"github.com/TopoSimplify/streamdp/config"
 )
 
 func main() {

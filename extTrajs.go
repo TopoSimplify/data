@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 	"encoding/json"
-	"simplex/data/store"
-	"simplex/data/config"
 	"github.com/boltdb/bolt"
 	"github.com/intdxdt/geom"
+	"github.com/TopoSimplify/data/store"
+	"github.com/TopoSimplify/data/config"
 )
 
 const TrajPtSize = 200

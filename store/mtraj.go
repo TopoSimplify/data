@@ -1,9 +1,9 @@
 package store
 
 import (
+	"log"
 	"encoding/json"
 	"github.com/boltdb/bolt"
-	"log"
 )
 
 /* mmsi, traj */
