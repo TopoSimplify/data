@@ -1,0 +1,17 @@
+ServerAddress          = "localhost:8000"
+DBHost                 = "localhost"
+User                   = "titus"
+Password               = "titus"
+Database               = "trajdb"
+Table                  = "trajectories"
+SimplficationType      = "NOPW"
+SRID                   = 3857
+Dim                    = 2
+Threshold              = 5000.0
+MinDist                = 500.0
+RelaxDist              = 100.0
+AvoidNewSelfIntersects = true
+GeomRelation           = true
+DistRelation           = true
+DirRelation            = true
+

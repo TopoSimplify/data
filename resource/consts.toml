@@ -1,0 +1,8 @@
+ignore         = false
+host           = "localhost"
+user           = "titus"
+password       = "titus"
+database       = "simplx"
+table          = "constraints"
+idcolumn       = "gid"
+geometrycolumn = "geom"
