@@ -10,7 +10,7 @@ import (
 	"encoding/csv"
 	"path/filepath"
 	"github.com/tj/go-spin"
-	"github.com/intdxdt/prj"
+	"github.com/TopoSimplify/prj"
 	"gopkg.in/cheggaaa/pb.v1"
 	"github.com/TopoSimplify/data/store"
 	"github.com/TopoSimplify/data/config"
