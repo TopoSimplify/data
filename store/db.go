@@ -45,7 +45,7 @@ func LoadFromShpFile(db *rtree.RTree, file_name string) *rtree.RTree {
 	defer shape.Close()
 
 	//gs := make([]geom.Geometry, 0)
-	objs := make([]rtree.BoxObj, 0)
+	objs := make([]rtree.Obj, 0)
 	// loop through all features in the shapefile
 	for shape.Next() {
 		_, polygon := shape.Shape()
@@ -53,7 +53,7 @@ func LoadFromShpFile(db *rtree.RTree, file_name string) *rtree.RTree {
 
 		coords := make([]*geom.Point, 0)
 		for _, pt := range ply.Points {
-			coords = append(coords, geom.NewPointXY(pt.X, pt.Y))
+			coords = append(coords, geom.PointXY(pt.X, pt.Y))
 		}
 		objs = append(objs, geom.NewPolygon(coords))
 	}

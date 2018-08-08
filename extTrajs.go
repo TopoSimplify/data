@@ -66,7 +66,7 @@ func fetchTrajectories(s *store.Store, key []byte) []*geom.LineString {
 
 			trj := make([]*geom.Point, 0)
 			for _, tj := range mtrj.Traj {
-				trj = append(trj, geom.NewPointXYZ(tj.X, tj.Y, float64(tj.Time.Unix())))
+				trj = append(trj, geom.PointXYZ(tj.X, tj.Y, float64(tj.Time.Unix())))
 			}
 			if len(trj) > TrajPtSize {
 				trajectories = append(trajectories, geom.NewLineString(trj))

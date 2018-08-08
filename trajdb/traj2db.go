@@ -135,7 +135,7 @@ func procTrajectories(s *store.Store, key []byte, src *db.DataSrc) int {
 
 			trj := make([]*geom.Point, 0)
 			for _, tj := range mtrj.Traj {
-				trj = append(trj, geom.NewPointXYZ(tj.X, tj.Y, float64(tj.Time.Unix())))
+				trj = append(trj, geom.PointXYZ(tj.X, tj.Y, float64(tj.Time.Unix())))
 			}
 			g := geom.NewLineString(trj)
 			// g.WKT(), src.SRID

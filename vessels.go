@@ -135,7 +135,7 @@ func Inter(first, last, data []*store.Obj, c *store.Obj, db *rtree.RTree) int {
 	for _, m := range data {
 		if m != nil {
 			mt := m.Mt()
-			pt := geom.NewPointXY(mt.X, mt.Y)
+			pt := geom.PointXY(mt.X, mt.Y)
 			pnts = append(pnts, pt)
 			geomlist = append(geomlist, pt)
 		}
