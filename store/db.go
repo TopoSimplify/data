@@ -20,7 +20,7 @@ func SearchDb(db *rtree.RTree, query *mbr.MBR) []geom.Geometry {
 	nodes := db.Search(*query)
 	geoms := make([]geom.Geometry, len(nodes))
 	for i := range nodes {
-		geoms[i] = nodes[i].Object.(geom.Geometry)
+		geoms[i] = nodes[i].(geom.Geometry)
 	}
 	return geoms
 }

@@ -4,10 +4,10 @@ import "github.com/intdxdt/math"
 
 //split tracjectories into consistent segments
 func SplitTraj(pings []*Obj) [][]*Obj {
-	trajectories := make([][]*Obj, 0)
-	traj := make([]*Obj, 0)
+	var trajectories = make([][]*Obj, 0)
+	var traj         = make([]*Obj, 0)
 
-	var fn_flush = func() {
+	var fnFlush = func() {
 		trajectories = append(trajectories, traj)
 		traj = make([]*Obj, 0)
 	}
@@ -23,14 +23,14 @@ func SplitTraj(pings []*Obj) [][]*Obj {
 			if (b.dt < 0.5) && !math.FloatEqual(a.dt, a.ddt) && (b.ddt < 0.1) {
 				traj = append(traj, b)
 			} else {
-				fn_flush()
+				fnFlush()
 				traj = append(traj, b)
 			}
 		}
 	}
 
 	if len(traj) > 0 {
-		fn_flush()
+		fnFlush()
 	}
 
 	return trajectories
