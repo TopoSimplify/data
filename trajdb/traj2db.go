@@ -1,20 +1,20 @@
 package main
 
 import (
-	"log"
-	"fmt"
 	"bytes"
-	"io/ioutil"
-	"github.com/TopoSimplify/db"
 	"database/sql"
-	"path/filepath"
 	"encoding/json"
-	"github.com/naoina/toml"
-	"github.com/boltdb/bolt"
-	"github.com/intdxdt/geom"
+	"fmt"
 	"github.com/TopoSimplify/data/store"
+	"github.com/TopoSimplify/db"
 	"github.com/TopoSimplify/streamdp/common"
 	"github.com/TopoSimplify/streamdp/config"
+	"github.com/boltdb/bolt"
+	"github.com/intdxdt/geom"
+	"github.com/naoina/toml"
+	"io/ioutil"
+	"log"
+	"path/filepath"
 )
 
 func main() {
@@ -46,11 +46,11 @@ func main() {
 	fmt.Println("<done>")
 }
 
-func loadTraj(src *db.DataSrc){
+func loadTraj(src *db.DataSrc) {
 	var dest = "/media/dxdt/trajdata"
 	var mtraj store.MTraj
 	var fname = fmt.Sprintf(`%v/%v`, dest, "101.toml")
-	var dat , err = ioutil.ReadFile(fname)
+	var dat, err = ioutil.ReadFile(fname)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -112,9 +112,9 @@ func createAndProcessTables(src *db.DataSrc) {
 }
 
 func procTrajectories(s *store.Store, key []byte, src *db.DataSrc) int {
-	total       := 0
+	total := 0
 	bufferLimit := 100
-	rows        := make([]string, 0)
+	rows := make([]string, 0)
 
 	fnInsert := func() {
 		insertIntoTable(src, rows)
@@ -141,7 +141,7 @@ func procTrajectories(s *store.Store, key []byte, src *db.DataSrc) int {
 			// g.WKT(), src.SRID
 			// ST_GeomFromText('%v', %v)
 			row := fmt.Sprintf(`'%v', %v, %v, ST_GeomFromText('%v', %v)`,
-				Serialize(&mtrj), len(mtrj.Traj), g.Length(), g.WKT(), src.SRID )
+				Serialize(&mtrj), len(mtrj.Traj), g.Length(), g.WKT(), src.SRID)
 			rows = append(rows, row)
 			if len(rows) > bufferLimit {
 				fnInsert()

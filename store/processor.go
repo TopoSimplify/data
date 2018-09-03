@@ -1,12 +1,12 @@
 package store
 
-//import (
+// import (
 //  . "github.com/TopoSimplify/struct/rtree"
 //  . "github.com/TopoSimplify/data/store"
-//)
+// )
 
 //
-//func processor(stash []*MTraffic, queue [][]*MTraffic, db *RTree) {
+// func processor(stash []*MTraffic, queue [][]*MTraffic, db *RTree) {
 //  stash.Push(Shift(queue));
 //  stash.Push(Shift(queue));
 //
@@ -37,4 +37,4 @@ package store
 //  } else {
 //    inter([]*MTraffic{a, b}, db, caseinter(jargs, args));
 //  }
-//}
+// }

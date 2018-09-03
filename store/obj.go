@@ -9,16 +9,16 @@ type Obj struct {
 }
 
 func NewObj(o *MTraffic) *Obj {
-	return &Obj{mt:o, dt:0, ddt:0}
+	return &Obj{mt: o, dt: 0, ddt: 0}
 }
 
-func (self *Obj) Dt () float64 {
+func (self *Obj) Dt() float64 {
 	return self.dt
 }
-func (self *Obj) Ddt () float64 {
+func (self *Obj) Ddt() float64 {
 	return self.ddt
 }
-func (self *Obj) Mt () *MTraffic {
+func (self *Obj) Mt() *MTraffic {
 	return self.mt
 }
 

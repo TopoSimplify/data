@@ -1,9 +1,9 @@
 package store
 
 import (
-	"log"
 	"encoding/json"
 	"github.com/boltdb/bolt"
+	"log"
 )
 
 type Store struct {
@@ -15,23 +15,22 @@ func NewStorage(filename string) *Store {
 	return &Store{db: openStore(filename)}
 }
 
-
 //close
 func (store *Store) Close() {
 	if store.db != nil {
 		store.db.Close()
 	}
 }
+
 //View
-func (store *Store) View(fn func(tx *bolt.Tx) error) error{
+func (store *Store) View(fn func(tx *bolt.Tx) error) error {
 	return store.db.View(fn)
 }
 
 //Update
-func (store *Store) Update(fn func(tx *bolt.Tx) error) error{
+func (store *Store) Update(fn func(tx *bolt.Tx) error) error {
 	return store.db.View(fn)
 }
-
 
 //Stores a buffer of marrine traffic records
 func (store *Store) BulkLoadMtStorage(mbuffer []*MTraffic) error {

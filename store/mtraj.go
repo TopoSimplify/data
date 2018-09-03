@@ -1,23 +1,23 @@
 package store
 
 import (
-	"log"
 	"encoding/json"
 	"github.com/boltdb/bolt"
+	"log"
 )
 
-/* mmsi, traj */
+// mmsi, traj
 type MTraj struct {
-	MMSI int            `json:"mmsi"  toml:"mmsi"`
-	Traj []*MTraffic    `json:"traj"  toml:"traj"`
+	MMSI int         `json:"mmsi"  toml:"mmsi"`
+	Traj []*MTraffic `json:"traj"  toml:"traj"`
 }
 
-//creates time as id of bytes
+// creates time as id of bytes
 func (mt *MTraj) Id() []byte {
 	return ItoB(mt.MMSI)
 }
 
-//saves self to a given bucket
+// saves self to a given bucket
 func (mt *MTraj) Save(b *bolt.Bucket) error {
 	var err error = nil
 	v, err := json.Marshal(mt)
@@ -35,7 +35,7 @@ func (mt *MTraj) Save(b *bolt.Bucket) error {
 	return nil
 }
 
-//Stores a buffer of marrine traffic records
+// Stores a buffer of marrine traffic records
 func (store *Store) BulkLoadTrajStorage(mbuffer []*MTraj) error {
 	return store.db.Update(func(tx *bolt.Tx) error {
 		buckList := make(map[int]*bolt.Bucket)
@@ -60,7 +60,7 @@ func (store *Store) BulkLoadTrajStorage(mbuffer []*MTraj) error {
 	})
 }
 
-//Stores a buffer of marrine traffic records
+// Stores a buffer of marrine traffic records
 func (store *Store) TrajKeys() [][]byte {
 	keys := make([][]byte, 0)
 	store.db.View(func(tx *bolt.Tx) error {

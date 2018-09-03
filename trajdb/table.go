@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
-	"fmt"
 	"bytes"
-	"text/template"
+	"fmt"
 	"github.com/TopoSimplify/db"
+	"log"
+	"text/template"
 )
 
 const IdColumn = "id"

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"log"
-	"fmt"
 	"bytes"
-	"encoding/gob"
 	"encoding/base64"
+	"encoding/gob"
+	"fmt"
 	"github.com/TopoSimplify/data/store"
+	"log"
 )
 
 // go binary encoder

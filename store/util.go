@@ -2,9 +2,10 @@ package store
 
 import (
 	"fmt"
-	"strconv"
 	"github.com/boltdb/bolt"
+	"strconv"
 )
+
 //string to byte
 func B(s string) []byte {
 	return []byte(s)
@@ -17,13 +18,12 @@ func ItoB(i int) []byte {
 
 //next id
 func NextId(b *bolt.Bucket) ([]byte, error) {
-    id, err := b.NextSequence()
-    if err != nil {
-        return nil , err
-    }
-    return B(strconv.FormatUint(id, 10)), nil
+	id, err := b.NextSequence()
+	if err != nil {
+		return nil, err
+	}
+	return B(strconv.FormatUint(id, 10)), nil
 }
-
 
 //create id
 func createTaskID(id interface{}) string {
@@ -34,6 +34,7 @@ func createTaskID(id interface{}) string {
 func PutS(b *bolt.Bucket, key string, value string) error {
 	return Put(b, B(key), B(value))
 }
+
 //put
 func Put(b *bolt.Bucket, key []byte, value []byte) error {
 	return b.Put(key, value)
@@ -73,9 +74,9 @@ func Pop(self *[]*MTraffic) *MTraffic {
 func Delete(self *[]*MTraffic, i int) *MTraffic {
 	a := *self
 	x := a[i]
-	copy(a[i:], a[i + 1:])
-	a[len(a) - 1] = nil // or the zero value of T
-	*self = a[:len(a) - 1]
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = nil // or the zero value of T
+	*self = a[:len(a)-1]
 	return x
 }
 
@@ -85,7 +86,7 @@ func Push(self *[]*MTraffic, x *MTraffic) int {
 }
 
 func ExtendFrom(self *[]*MTraffic, i int, other []*MTraffic) *[]*MTraffic {
-	b := other[0 :len(other):len(other)]
+	b := other[0:len(other):len(other)]
 	a := *self
 	*self = append(a[:i], append(b, a[i:]...)...)
 	return self
@@ -97,7 +98,7 @@ func Extend(a []*Obj, b []*Obj) []*Obj {
 
 func Reverse(self *[]*MTraffic) *[]*MTraffic {
 	a := *self
-	for l, r := 0, len(a) - 1; l < r; l, r = l + 1, r - 1 {
+	for l, r := 0, len(a)-1; l < r; l, r = l+1, r-1 {
 		a[l], a[r] = a[r], a[l]
 	}
 	*self = a
@@ -121,7 +122,7 @@ func First(t []*Obj) *Obj {
 
 func Last(t []*Obj) *Obj {
 	if !IsEmpty(t) {
-		return t[len(t) - 1]
+		return t[len(t)-1]
 	}
 	return nil
 }
